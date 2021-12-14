@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Mist","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="场景在搭建 Kubernetes Master 节点的时候， kubeadm init 命令会输出一个 token ， 提供给后续 Worker 节点加入集群。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Kubernetes添加新的worker节点">
+<meta property="og:url" content="http://example.com/kubernetes-add-new-worker-node.html">
+<meta property="og:site_name" content="小鱼小虾">
+<meta property="og:description" content="场景在搭建 Kubernetes Master 节点的时候， kubeadm init 命令会输出一个 token ， 提供给后续 Worker 节点加入集群。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2021-12-06T14:16:26.000Z">
+<meta property="article:modified_time" content="2021-12-08T15:00:14.367Z">
+<meta property="article:author" content="小鱼小虾">
+<meta property="article:tag" content="Kubernetes">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/kubernetes-add-new-worker-node.html">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>Kubernetes添加新的worker节点 | 小鱼小虾</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">小鱼小虾</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/kubernetes-add-new-worker-node.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/YJ.png">
+      <meta itemprop="name" content="小鱼小虾">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="小鱼小虾">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Kubernetes添加新的worker节点
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2021-12-06 22:16:26" itemprop="dateCreated datePublished" datetime="2021-12-06T22:16:26+08:00">2021-12-06</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-12-08 23:00:14" itemprop="dateModified" datetime="2021-12-08T23:00:14+08:00">2021-12-08</time>
+              </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="场景"><a href="#场景" class="headerlink" title="场景"></a>场景</h1><p>在搭建 Kubernetes Master 节点的时候， <code>kubeadm init</code> 命令会输出一个 token ， 提供给后续 Worker 节点加入集群。</p>
+<span id="more"></span>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">root@master:/home/root<span class="comment"># kubeadm init --config kubeadm.yaml</span></span><br><span class="line">[init] Using Kubernetes version: v1.20.13</span><br><span class="line">...</span><br><span class="line"></span><br><span class="line">Your Kubernetes control-plane has initialized successfully!</span><br><span class="line"></span><br><span class="line">To start using your cluster, you need to run the following as a regular user:</span><br><span class="line"></span><br><span class="line">  mkdir -p <span class="variable">$HOME</span>/.kube</span><br><span class="line">  sudo cp -i /etc/kubernetes/admin.conf <span class="variable">$HOME</span>/.kube/config</span><br><span class="line">  sudo chown $(id -u):$(id -g) <span class="variable">$HOME</span>/.kube/config</span><br><span class="line"></span><br><span class="line">Alternatively, <span class="keyword">if</span> you are the root user, you can run:</span><br><span class="line"></span><br><span class="line">  <span class="built_in">export</span> KUBECONFIG=/etc/kubernetes/admin.conf</span><br><span class="line"></span><br><span class="line">You should now deploy a pod network to the cluster.</span><br><span class="line">Run <span class="string">&quot;kubectl apply -f [podnetwork].yaml&quot;</span> with one of the options listed at:</span><br><span class="line">  https://kubernetes.io/docs/concepts/cluster-administration/addons/</span><br><span class="line"></span><br><span class="line">Then you can join any number of worker nodes by running the following on each as root:</span><br><span class="line"></span><br><span class="line">kubeadm join 192.168.1.33:6443 --token 8x201x.eicmyqdc6aaye0l2 \</span><br><span class="line">    --discovery-token-ca-cert-hash sha256:5a578f95858e0cf7cf2b4a4b1d54ba73987c71e3df74ae97eec5f92f9240b116 </span><br><span class="line">root@master:/home/root<span class="comment"># </span></span><br></pre></td></tr></table></figure>
+
+<p>然而，token 的有效期只有 24 小时，如果</p>
+<ul>
+<li>token 过期后还希望加入新的 Worker 节点</li>
+<li>即使 token 没有过期，但 Master 在没有保存 token 的情况下重启了</li>
+</ul>
+<p>此时，可以通过 <code>kubeadm token</code> 命令生成新的 token 以及 join command</p>
+<h1 id="Master-节点生成新-token-及-join-command"><a href="#Master-节点生成新-token-及-join-command" class="headerlink" title="Master 节点生成新 token 及 join command"></a>Master 节点生成新 token 及 join command</h1><h2 id="确保-Master-节点正在运行"><a href="#确保-Master-节点正在运行" class="headerlink" title="确保 Master 节点正在运行"></a>确保 Master 节点正在运行</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">root@master:/home/root<span class="comment"># systemctl status kubelet</span></span><br><span class="line">● kubelet.service - kubelet: The Kubernetes Node Agent</span><br><span class="line">     Loaded: loaded (/lib/systemd/system/kubelet.service; enabled; vendor preset: enabled)</span><br><span class="line">    Drop-In: /etc/systemd/system/kubelet.service.d</span><br><span class="line">             └─10-kubeadm.conf</span><br><span class="line">     Active: active (running) since Mon 2021-12-06 22:40:34 CST; 2min 11s ago</span><br><span class="line">       Docs: https://kubernetes.io/docs/home/</span><br><span class="line">   Main PID: 60897 (kubelet)</span><br><span class="line">      Tasks: 15 (<span class="built_in">limit</span>: 4599)</span><br><span class="line">     Memory: 36.4M</span><br><span class="line">     CGroup: /system.slice/kubelet.service</span><br><span class="line">             └─60897 /usr/bin/kubelet --bootstrap-kubeconfig=/etc/kubernetes/bootstrap-kubelet.conf --kubeconfig=/etc/kubernetes/kubelet.conf --config=/var/lib/kube&gt;</span><br><span class="line"></span><br><span class="line">12月 06 22:40:41 master kubelet[60897]: I1206 22:40:41.302913   60897 reconciler.go:224] operationExecutor.VerifyControllerAttachedVolume started <span class="keyword">for</span> volume <span class="string">&quot;cni-bi&gt;</span></span><br><span class="line"><span class="string">12月 06 22:40:41 master kubelet[60897]: I1206 22:40:41.302927   60897 reconciler.go:224] operationExecutor.VerifyControllerAttachedVolume started for volume &quot;</span>usr-lo&gt;</span><br><span class="line">12月 06 22:40:41 master kubelet[60897]: I1206 22:40:41.302940   60897 reconciler.go:224] operationExecutor.VerifyControllerAttachedVolume started <span class="keyword">for</span> volume <span class="string">&quot;flexvo&gt;</span></span><br><span class="line"><span class="string">12月 06 22:40:41 master kubelet[60897]: I1206 22:40:41.302953   60897 reconciler.go:224] operationExecutor.VerifyControllerAttachedVolume started for volume &quot;</span>xtable&gt;</span><br><span class="line">12月 06 22:40:41 master kubelet[60897]: I1206 22:40:41.302968   60897 reconciler.go:224] operationExecutor.VerifyControllerAttachedVolume started <span class="keyword">for</span> volume <span class="string">&quot;cni-co&gt;</span></span><br><span class="line"><span class="string">12月 06 22:40:41 master kubelet[60897]: I1206 22:40:41.302982   60897 reconciler.go:224] operationExecutor.VerifyControllerAttachedVolume started for volume &quot;</span>xtable&gt;</span><br><span class="line">12月 06 22:40:41 master kubelet[60897]: I1206 22:40:41.303001   60897 reconciler.go:224] operationExecutor.VerifyControllerAttachedVolume started <span class="keyword">for</span> volume <span class="string">&quot;etc-pk&gt;</span></span><br><span class="line"><span class="string">12月 06 22:40:41 master kubelet[60897]: I1206 22:40:41.303017   60897 reconciler.go:224] operationExecutor.VerifyControllerAttachedVolume started for volume &quot;</span>usr-lo&gt;</span><br><span class="line">12月 06 22:40:41 master kubelet[60897]: I1206 22:40:41.303041   60897 reconciler.go:224] operationExecutor.VerifyControllerAttachedVolume started <span class="keyword">for</span> volume <span class="string">&quot;weaved&gt;</span></span><br><span class="line"><span class="string">12月 06 22:40:41 master kubelet[60897]: I1206 22:40:41.303051   60897 reconciler.go:157] Reconciler: start to sync state</span></span><br><span class="line"><span class="string"></span></span><br></pre></td></tr></table></figure>
+
+<p>需要的话，执行 <code>systemctl status kubelet</code> 启动 Master</p>
+<h2 id="生成新-token"><a href="#生成新-token" class="headerlink" title="生成新 token"></a>生成新 token</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">root@master:/home/root<span class="comment"># kubeadm token generate</span></span><br><span class="line">wo70fq.2xef2p6g3yv1wnlf</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h2 id="生成节点-join-command"><a href="#生成节点-join-command" class="headerlink" title="生成节点 join command"></a>生成节点 join command</h2><p>kubeadm token create <em>[new_token]</em> –print-join-command</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">root@master:/home/root<span class="comment"># kubeadm token create wo70fq.2xef2p6g3yv1wnlf --print-join-command</span></span><br><span class="line">kubeadm join 192.168.1.30:6443 --token wo70fq.2xef2p6g3yv1wnlf     --discovery-token-ca-cert-hash sha256:59c3eadaf97d0f576379c08ed73c1a3693fc8ec5a5dfbc08af5eeb40d1eb9f84</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h1 id="Worker-节点执行-join-command-加入集群"><a href="#Worker-节点执行-join-command-加入集群" class="headerlink" title="Worker 节点执行 join command 加入集群"></a>Worker 节点执行 join command 加入集群</h1><p>在 Worker 节点以 root （或者 sudo）执行以上生成的命令</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">root@worker:/home/root<span class="comment"># kubeadm join 192.168.1.30:6443 --token wo70fq.2xef2p6g3yv1wnlf     --discovery-token-ca-cert-hash sha256:59c3eadaf97d0f576379c08ed73c1a3693fc8ec5a5dfbc08af5eeb40d1eb9f84</span></span><br><span class="line">[preflight] Running pre-flight checks</span><br><span class="line">	[WARNING IsDockerSystemdCheck]: detected <span class="string">&quot;cgroupfs&quot;</span> as the Docker cgroup driver. The recommended driver is <span class="string">&quot;systemd&quot;</span>. Please follow the guide at https://kubernetes.io/docs/setup/cri/</span><br><span class="line">	[WARNING SystemVerification]: this Docker version is not on the list of validated versions: 20.10.7. Latest validated version: 19.03</span><br><span class="line">[preflight] Reading configuration from the cluster...</span><br><span class="line">[preflight] FYI: You can look at this config file with <span class="string">&#x27;kubectl -n kube-system get cm kubeadm-config -o yaml&#x27;</span></span><br><span class="line">[kubelet-start] Writing kubelet configuration to file <span class="string">&quot;/var/lib/kubelet/config.yaml&quot;</span></span><br><span class="line">[kubelet-start] Writing kubelet environment file with flags to file <span class="string">&quot;/var/lib/kubelet/kubeadm-flags.env&quot;</span></span><br><span class="line">[kubelet-start] Starting the kubelet</span><br><span class="line">[kubelet-start] Waiting <span class="keyword">for</span> the kubelet to perform the TLS Bootstrap...</span><br><span class="line"></span><br><span class="line">This node has joined the cluster:</span><br><span class="line">* Certificate signing request was sent to apiserver and a response was received.</span><br><span class="line">* The Kubelet was informed of the new secure connection details.</span><br><span class="line"></span><br><span class="line">Run <span class="string">&#x27;kubectl get nodes&#x27;</span> on the control-plane to see this node join the cluster.</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>回到 Master 节点可以看到新的 Worker 节点已经添加成功</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">dereck@master:~$ kubectl get node -owide</span><br><span class="line">NAME     STATUS   ROLES                  AGE     VERSION   INTERNAL-IP    EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION      CONTAINER-RUNTIME</span><br><span class="line">master   Ready    control-plane,master   4d      v1.20.2   192.168.1.30   &lt;none&gt;        Ubuntu 20.04.3 LTS   5.11.0-41-generic   docker://20.10.7</span><br><span class="line">worker   Ready    &lt;none&gt;                 5m47s   v1.20.2   192.168.1.33   &lt;none&gt;        Ubuntu 20.04.3 LTS   5.11.0-41-generic   docker://20.10.7</span><br><span class="line">dereck@master:~$ </span><br></pre></td></tr></table></figure>
+
+
+
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Kubernetes/" rel="tag"># Kubernetes</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/install-kubernetes-on-macos.html" rel="prev" title="MacOS搭建完整的Kubernetes集群">
+      <i class="fa fa-chevron-left"></i> MacOS搭建完整的Kubernetes集群
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/kubectl-failed-on-worker-node.html" rel="next" title="Kubernetes的worker节点无法运行kubectl命令">
+      Kubernetes的worker节点无法运行kubectl命令 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%9C%BA%E6%99%AF"><span class="nav-number">1.</span> <span class="nav-text">场景</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Master-%E8%8A%82%E7%82%B9%E7%94%9F%E6%88%90%E6%96%B0-token-%E5%8F%8A-join-command"><span class="nav-number">2.</span> <span class="nav-text">Master 节点生成新 token 及 join command</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%A1%AE%E4%BF%9D-Master-%E8%8A%82%E7%82%B9%E6%AD%A3%E5%9C%A8%E8%BF%90%E8%A1%8C"><span class="nav-number">2.1.</span> <span class="nav-text">确保 Master 节点正在运行</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%94%9F%E6%88%90%E6%96%B0-token"><span class="nav-number">2.2.</span> <span class="nav-text">生成新 token</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%94%9F%E6%88%90%E8%8A%82%E7%82%B9-join-command"><span class="nav-number">2.3.</span> <span class="nav-text">生成节点 join command</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Worker-%E8%8A%82%E7%82%B9%E6%89%A7%E8%A1%8C-join-command-%E5%8A%A0%E5%85%A5%E9%9B%86%E7%BE%A4"><span class="nav-number">3.</span> <span class="nav-text">Worker 节点执行 join command 加入集群</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="小鱼小虾"
+      src="/images/YJ.png">
+  <p class="site-author-name" itemprop="name">小鱼小虾</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">3</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+        <div class="back-to-top motion-element">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">小鱼小虾</span>
+</div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script>
+if (document.querySelectorAll('pre.mermaid').length) {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mermaid@8/dist/mermaid.min.js', () => {
+    mermaid.initialize({
+      theme    : 'forest',
+      logLevel : 3,
+      flowchart: { curve     : 'linear' },
+      gantt    : { axisFormat: '%m/%d/%Y' },
+      sequence : { actorMargin: 50 }
+    });
+  }, window.mermaid);
+}
+</script>
+
+
+  
+
+  
+
+</body>
+</html>

@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Mist","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="目标  所有节点安装 Docker 和 kubeadm  部署 Kubernetes Master  部署容器网络插件  部署 Kubernetes Worker  部署 Dashboard 可视化插件 部署容器存储插件">
+<meta property="og:type" content="article">
+<meta property="og:title" content="MacOS搭建完整的Kubernetes集群">
+<meta property="og:url" content="http://example.com/install-kubernetes-on-macos.html">
+<meta property="og:site_name" content="小鱼小虾">
+<meta property="og:description" content="目标  所有节点安装 Docker 和 kubeadm  部署 Kubernetes Master  部署容器网络插件  部署 Kubernetes Worker  部署 Dashboard 可视化插件 部署容器存储插件">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://example.com/images/MacOS%E6%90%AD%E5%BB%BA%E5%AE%8C%E6%95%B4%E7%9A%84Kubernetes%E9%9B%86%E7%BE%A4/2021-12-05-clone-master.png">
+<meta property="og:image" content="http://example.com/images/MacOS%E6%90%AD%E5%BB%BA%E5%AE%8C%E6%95%B4%E7%9A%84Kubernetes%E9%9B%86%E7%BE%A4/image-20211209225537266.png">
+<meta property="og:image" content="http://example.com/images/MacOS%E6%90%AD%E5%BB%BA%E5%AE%8C%E6%95%B4%E7%9A%84Kubernetes%E9%9B%86%E7%BE%A4/image-20211209231452281.png">
+<meta property="og:image" content="http://example.com/images/MacOS%E6%90%AD%E5%BB%BA%E5%AE%8C%E6%95%B4%E7%9A%84Kubernetes%E9%9B%86%E7%BE%A4/image-20211209234720282.png">
+<meta property="article:published_time" content="2021-12-05T12:17:29.000Z">
+<meta property="article:modified_time" content="2021-12-14T15:14:45.493Z">
+<meta property="article:author" content="小鱼小虾">
+<meta property="article:tag" content="Kubernetes">
+<meta property="article:tag" content="MacOS">
+<meta property="article:tag" content="Ubuntu">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/images/MacOS%E6%90%AD%E5%BB%BA%E5%AE%8C%E6%95%B4%E7%9A%84Kubernetes%E9%9B%86%E7%BE%A4/2021-12-05-clone-master.png">
+
+<link rel="canonical" href="http://example.com/install-kubernetes-on-macos.html">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>MacOS搭建完整的Kubernetes集群 | 小鱼小虾</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">小鱼小虾</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/install-kubernetes-on-macos.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/YJ.png">
+      <meta itemprop="name" content="小鱼小虾">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="小鱼小虾">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          MacOS搭建完整的Kubernetes集群
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2021-12-05 20:17:29" itemprop="dateCreated datePublished" datetime="2021-12-05T20:17:29+08:00">2021-12-05</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-12-14 23:14:45" itemprop="dateModified" datetime="2021-12-14T23:14:45+08:00">2021-12-14</time>
+              </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="目标"><a href="#目标" class="headerlink" title="目标"></a>目标</h1><ul>
+<li> 所有节点安装 Docker 和 kubeadm</li>
+<li> 部署 Kubernetes Master</li>
+<li> 部署容器网络插件</li>
+<li> 部署 Kubernetes Worker</li>
+<li> 部署 Dashboard 可视化插件</li>
+<li>部署容器存储插件</li>
+</ul>
+<span id="more"></span>
+
+<h1 id="环境准备"><a href="#环境准备" class="headerlink" title="环境准备"></a>环境准备</h1><table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>宿主机</strong></td>
+<td>macOS Monterey 12.0.1</td>
+</tr>
+<tr>
+<td><strong>虚拟机工具</strong></td>
+<td><a target="_blank" rel="noopener" href="https://macwk.com/soft/vmware-fusion">VMware Fusion Pro 12.2.1</a></td>
+</tr>
+<tr>
+<td><strong>虚拟机景象</strong></td>
+<td><a target="_blank" rel="noopener" href="https://ubuntu.com/download/desktop">ubuntu-20.04.3-desktop-amd64.iso</a></td>
+</tr>
+<tr>
+<td><strong>kubenete</strong></td>
+<td>v1.20.0</td>
+</tr>
+</tbody></table>
+<h1 id="安装-Kubernetes-和-Docker"><a href="#安装-Kubernetes-和-Docker" class="headerlink" title="安装 Kubernetes 和 Docker"></a>安装 Kubernetes 和 Docker</h1><h2 id="配置代理"><a href="#配置代理" class="headerlink" title="配置代理"></a>配置代理</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">alias</span> proxyon=<span class="string">&#x27;export http_proxy=http://192.168.1.23:7890; export https_proxy=http://192.168.1.23:7890; export no_proxy=192.168.1.33&#x27;</span></span><br><span class="line"><span class="built_in">alias</span> proxyoff=<span class="string">&#x27;unset http_proxy; unset https_proxy&#x27;</span></span><br><span class="line"></span><br><span class="line">proxyon</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="根据情况安装所需工具"><a href="#根据情况安装所需工具" class="headerlink" title="根据情况安装所需工具"></a>根据情况安装所需工具</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo apt-get install curl</span><br><span class="line">sudo apt-get install vim</span><br></pre></td></tr></table></figure>
+
+<h2 id="使用-root-用户安装"><a href="#使用-root-用户安装" class="headerlink" title="使用 root 用户安装"></a>使用 root 用户安装</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -</span><br><span class="line"></span><br><span class="line">cat &lt;&lt;<span class="string">EOF &gt; /etc/apt/sources.list.d/kubernetes.list</span></span><br><span class="line"><span class="string">deb http://apt.kubernetes.io/ kubernetes-xenial main</span></span><br><span class="line"><span class="string">EOF</span></span><br><span class="line"></span><br><span class="line">apt-get update</span><br><span class="line"><span class="comment">#apt-get install -y docker.io kubeadm</span></span><br><span class="line">apt-get install -y docker.io kubelet=1.20.2-00 kubeadm=1.20.2-00 kubectl=1.20.2-00 --allow-downgrades</span><br><span class="line">apt-mark hold kubelet kubeadm kubectl</span><br></pre></td></tr></table></figure>
+
+<h2 id="准备-kubeadm-yaml"><a href="#准备-kubeadm-yaml" class="headerlink" title="准备 kubeadm.yaml"></a>准备 kubeadm.yaml</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">root@master:/home/root<span class="comment"># vim /home/root/kubeadm.yaml</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">kubeadm.k8s.io/v1beta2</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">ClusterConfiguration</span></span><br><span class="line"><span class="attr">controllerManager:</span></span><br><span class="line">  <span class="attr">extraArgs:</span></span><br><span class="line">    <span class="attr">horizontal-pod-autoscaler-use-rest-clients:</span> <span class="string">&quot;true&quot;</span></span><br><span class="line">    <span class="attr">horizontal-pod-autoscaler-sync-period:</span> <span class="string">&quot;10s&quot;</span></span><br><span class="line">    <span class="attr">node-monitor-grace-period:</span> <span class="string">&quot;10s&quot;</span></span><br><span class="line"><span class="attr">apiServer:</span></span><br><span class="line">  <span class="attr">extraArgs:</span></span><br><span class="line">    <span class="attr">runtime-config:</span> <span class="string">&quot;api/all=true&quot;</span></span><br><span class="line"><span class="attr">kubernetesVersion:</span> <span class="string">&quot;stable-1.20&quot;</span></span><br><span class="line"><span class="attr">imageRepository:</span> <span class="string">registry.cn-hangzhou.aliyuncs.com/google_containers</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="部署-Master"><a href="#部署-Master" class="headerlink" title="部署 Master"></a>部署 Master</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br></pre></td><td class="code"><pre><span class="line">root@master:/home/root<span class="comment"># proxyoff</span></span><br><span class="line">root@master:/home/root<span class="comment"># swapoff -a</span></span><br><span class="line">root@master:/home/root<span class="comment">#</span></span><br><span class="line">root@master:/home/root<span class="comment"># kubeadm init --config kubeadm.yaml</span></span><br><span class="line">[init] Using Kubernetes version: v1.20.13</span><br><span class="line">[preflight] Running pre-flight checks</span><br><span class="line">	[WARNING IsDockerSystemdCheck]: detected <span class="string">&quot;cgroupfs&quot;</span> as the Docker cgroup driver. The recommended driver is <span class="string">&quot;systemd&quot;</span>. Please follow the guide at https://kubernetes.io/docs/setup/cri/</span><br><span class="line">	[WARNING SystemVerification]: this Docker version is not on the list of validated versions: 20.10.7. Latest validated version: 19.03</span><br><span class="line">[preflight] Pulling images required <span class="keyword">for</span> setting up a Kubernetes cluster</span><br><span class="line">[preflight] This might take a minute or two, depending on the speed of your internet connection</span><br><span class="line">[preflight] You can also perform this action <span class="keyword">in</span> beforehand using <span class="string">&#x27;kubeadm config images pull&#x27;</span></span><br><span class="line">[certs] Using certificateDir folder <span class="string">&quot;/etc/kubernetes/pki&quot;</span></span><br><span class="line">[certs] Generating <span class="string">&quot;ca&quot;</span> certificate and key</span><br><span class="line">[certs] Generating <span class="string">&quot;apiserver&quot;</span> certificate and key</span><br><span class="line">[certs] apiserver serving cert is signed <span class="keyword">for</span> DNS names [kubernetes kubernetes.default kubernetes.default.svc kubernetes.default.svc.cluster.local master] and IPs [10.96.0.1 192.168.1.33]</span><br><span class="line">[certs] Generating <span class="string">&quot;apiserver-kubelet-client&quot;</span> certificate and key</span><br><span class="line">[certs] Generating <span class="string">&quot;front-proxy-ca&quot;</span> certificate and key</span><br><span class="line">[certs] Generating <span class="string">&quot;front-proxy-client&quot;</span> certificate and key</span><br><span class="line">[certs] Generating <span class="string">&quot;etcd/ca&quot;</span> certificate and key</span><br><span class="line">[certs] Generating <span class="string">&quot;etcd/server&quot;</span> certificate and key</span><br><span class="line">[certs] etcd/server serving cert is signed <span class="keyword">for</span> DNS names [localhost master] and IPs [192.168.1.33 127.0.0.1 ::1]</span><br><span class="line">[certs] Generating <span class="string">&quot;etcd/peer&quot;</span> certificate and key</span><br><span class="line">[certs] etcd/peer serving cert is signed <span class="keyword">for</span> DNS names [localhost master] and IPs [192.168.1.33 127.0.0.1 ::1]</span><br><span class="line">[certs] Generating <span class="string">&quot;etcd/healthcheck-client&quot;</span> certificate and key</span><br><span class="line">[certs] Generating <span class="string">&quot;apiserver-etcd-client&quot;</span> certificate and key</span><br><span class="line">[certs] Generating <span class="string">&quot;sa&quot;</span> key and public key</span><br><span class="line">[kubeconfig] Using kubeconfig folder <span class="string">&quot;/etc/kubernetes&quot;</span></span><br><span class="line">[kubeconfig] Writing <span class="string">&quot;admin.conf&quot;</span> kubeconfig file</span><br><span class="line">[kubeconfig] Writing <span class="string">&quot;kubelet.conf&quot;</span> kubeconfig file</span><br><span class="line">[kubeconfig] Writing <span class="string">&quot;controller-manager.conf&quot;</span> kubeconfig file</span><br><span class="line">[kubeconfig] Writing <span class="string">&quot;scheduler.conf&quot;</span> kubeconfig file</span><br><span class="line">[kubelet-start] Writing kubelet environment file with flags to file <span class="string">&quot;/var/lib/kubelet/kubeadm-flags.env&quot;</span></span><br><span class="line">[kubelet-start] Writing kubelet configuration to file <span class="string">&quot;/var/lib/kubelet/config.yaml&quot;</span></span><br><span class="line">[kubelet-start] Starting the kubelet</span><br><span class="line">[control-plane] Using manifest folder <span class="string">&quot;/etc/kubernetes/manifests&quot;</span></span><br><span class="line">[control-plane] Creating static Pod manifest <span class="keyword">for</span> <span class="string">&quot;kube-apiserver&quot;</span></span><br><span class="line">[control-plane] Creating static Pod manifest <span class="keyword">for</span> <span class="string">&quot;kube-controller-manager&quot;</span></span><br><span class="line">[control-plane] Creating static Pod manifest <span class="keyword">for</span> <span class="string">&quot;kube-scheduler&quot;</span></span><br><span class="line">[etcd] Creating static Pod manifest <span class="keyword">for</span> <span class="built_in">local</span> etcd <span class="keyword">in</span> <span class="string">&quot;/etc/kubernetes/manifests&quot;</span></span><br><span class="line">[wait-control-plane] Waiting <span class="keyword">for</span> the kubelet to boot up the control plane as static Pods from directory <span class="string">&quot;/etc/kubernetes/manifests&quot;</span>. This can take up to 4m0s</span><br><span class="line">[apiclient] All control plane components are healthy after 13.002800 seconds</span><br><span class="line">[upload-config] Storing the configuration used <span class="keyword">in</span> ConfigMap <span class="string">&quot;kubeadm-config&quot;</span> <span class="keyword">in</span> the <span class="string">&quot;kube-system&quot;</span> Namespace</span><br><span class="line">[kubelet] Creating a ConfigMap <span class="string">&quot;kubelet-config-1.20&quot;</span> <span class="keyword">in</span> namespace kube-system with the configuration <span class="keyword">for</span> the kubelets <span class="keyword">in</span> the cluster</span><br><span class="line">[upload-certs] Skipping phase. Please see --upload-certs</span><br><span class="line">[mark-control-plane] Marking the node master as control-plane by adding the labels <span class="string">&quot;node-role.kubernetes.io/master=&#x27;&#x27;&quot;</span> and <span class="string">&quot;node-role.kubernetes.io/control-plane=&#x27;&#x27; (deprecated)&quot;</span></span><br><span class="line">[mark-control-plane] Marking the node master as control-plane by adding the taints [node-role.kubernetes.io/master:NoSchedule]</span><br><span class="line">[bootstrap-token] Using token: 8x201x.eicmyqdc6aaye0l2</span><br><span class="line">[bootstrap-token] Configuring bootstrap tokens, cluster-info ConfigMap, RBAC Roles</span><br><span class="line">[bootstrap-token] configured RBAC rules to allow Node Bootstrap tokens to get nodes</span><br><span class="line">[bootstrap-token] configured RBAC rules to allow Node Bootstrap tokens to post CSRs <span class="keyword">in</span> order <span class="keyword">for</span> nodes to get long term certificate credentials</span><br><span class="line">[bootstrap-token] configured RBAC rules to allow the csrapprover controller automatically approve CSRs from a Node Bootstrap Token</span><br><span class="line">[bootstrap-token] configured RBAC rules to allow certificate rotation <span class="keyword">for</span> all node client certificates <span class="keyword">in</span> the cluster</span><br><span class="line">[bootstrap-token] Creating the <span class="string">&quot;cluster-info&quot;</span> ConfigMap <span class="keyword">in</span> the <span class="string">&quot;kube-public&quot;</span> namespace</span><br><span class="line">[kubelet-finalize] Updating <span class="string">&quot;/etc/kubernetes/kubelet.conf&quot;</span> to point to a rotatable kubelet client certificate and key</span><br><span class="line">[addons] Applied essential addon: CoreDNS</span><br><span class="line">[addons] Applied essential addon: kube-proxy</span><br><span class="line"></span><br><span class="line">Your Kubernetes control-plane has initialized successfully!</span><br><span class="line"></span><br><span class="line">To start using your cluster, you need to run the following as a regular user:</span><br><span class="line"></span><br><span class="line">  mkdir -p <span class="variable">$HOME</span>/.kube</span><br><span class="line">  sudo cp -i /etc/kubernetes/admin.conf <span class="variable">$HOME</span>/.kube/config</span><br><span class="line">  sudo chown $(id -u):$(id -g) <span class="variable">$HOME</span>/.kube/config</span><br><span class="line"></span><br><span class="line">Alternatively, <span class="keyword">if</span> you are the root user, you can run:</span><br><span class="line"></span><br><span class="line">  <span class="built_in">export</span> KUBECONFIG=/etc/kubernetes/admin.conf</span><br><span class="line"></span><br><span class="line">You should now deploy a pod network to the cluster.</span><br><span class="line">Run <span class="string">&quot;kubectl apply -f [podnetwork].yaml&quot;</span> with one of the options listed at:</span><br><span class="line">  https://kubernetes.io/docs/concepts/cluster-administration/addons/</span><br><span class="line"></span><br><span class="line">Then you can join any number of worker nodes by running the following on each as root:</span><br><span class="line"></span><br><span class="line">kubeadm join 192.168.1.33:6443 --token 8x201x.eicmyqdc6aaye0l2 \</span><br><span class="line">    --discovery-token-ca-cert-hash sha256:5a578f95858e0cf7cf2b4a4b1d54ba73987c71e3df74ae97eec5f92f9240b116 </span><br><span class="line">root@master:/home/root<span class="comment"># </span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>这里需要保持上面 log 结尾处 <code>kubeadm join</code>这行指令，后续需要用它部署 Worker 节点。</p>
+<p>另外，需要根据 log 中的提示拷贝集群所需配置到 user home 目录下。而需要这些配置命令的原因是：Kubernetes 集群默认需要加密方式访问。所以，这几条命令，就是将刚刚部署生成的 Kubernetes 集群的安全配置文件，保存到当前用户的.kube 目录下，kubectl 默认会使用这个目录下的授权信息访问 Kubernetes 集群。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">dereck@master:~$ mkdir -p <span class="variable">$HOME</span>/.kube</span><br><span class="line">dereck@master:~$ sudo cp -i /etc/kubernetes/admin.conf <span class="variable">$HOME</span>/.kube/config</span><br><span class="line">[sudo] dereck 的密码： </span><br><span class="line">dereck@master:~$ </span><br><span class="line">dereck@master:~$ sudo chown $(id -u):$(id -g) <span class="variable">$HOME</span>/.kube/config</span><br><span class="line">dereck@master:~$</span><br></pre></td></tr></table></figure>
+
+<p>查看 master 节点状态，发现其状态是 <em>NotReady</em> </p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">dereck@master:~$ kubectl get nodes</span><br><span class="line">NAME     STATUS     ROLES                  AGE   VERSION</span><br><span class="line">master   NotReady   control-plane,master   12m   v1.20.2</span><br><span class="line">dereck@master:~$ </span><br></pre></td></tr></table></figure>
+
+<p>这时因为网络插件尚未部署 <em>“message:docker: network plugin is not ready: cni config uninitialized”</em></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">dereck@master:~$ kubectl describe node master</span><br><span class="line">Name:               master</span><br><span class="line">Roles:              control-plane,master</span><br><span class="line">...</span><br><span class="line">Conditions:</span><br><span class="line">  Type             Status  LastHeartbeatTime                 LastTransitionTime                Reason                       Message</span><br><span class="line">  ----             ------  -----------------                 ------------------                ------                       -------</span><br><span class="line">  MemoryPressure   False   Sun, 05 Dec 2021 22:15:05 +0800   Sun, 05 Dec 2021 22:04:39 +0800   KubeletHasSufficientMemory   kubelet has sufficient memory available</span><br><span class="line">  DiskPressure     False   Sun, 05 Dec 2021 22:15:05 +0800   Sun, 05 Dec 2021 22:04:39 +0800   KubeletHasNoDiskPressure     kubelet has no disk pressure</span><br><span class="line">  PIDPressure      False   Sun, 05 Dec 2021 22:15:05 +0800   Sun, 05 Dec 2021 22:04:39 +0800   KubeletHasSufficientPID      kubelet has sufficient PID available</span><br><span class="line">  Ready            False   Sun, 05 Dec 2021 22:15:05 +0800   Sun, 05 Dec 2021 22:04:39 +0800   KubeletNotReady              runtime network not ready: NetworkReady=<span class="literal">false</span> reason:NetworkPluginNotReady message:docker: network plugin is not ready: cni config uninitialized</span><br><span class="line">Addresses:</span><br><span class="line">  InternalIP:  192.168.1.33</span><br><span class="line">  Hostname:    master</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+
+<p>除了通过 <code>kubectl describe</code> 查看原因，还可以通过查看节点上的所有 Pod 的状态来分析。其中，kube-system 是 Kubernetes 项目预留的系统 Pod 的工作空间（Namepsace，注意它并不是 Linux Namespace，它只是 Kubernetes 划分不同工作空间的单位）：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">dereck@master:~$ kubectl -n kube-system get po</span><br><span class="line">NAME                             READY   STATUS    RESTARTS   AGE</span><br><span class="line">coredns-54d67798b7-gpfnw         0/1     Pending   0          22m</span><br><span class="line">coredns-54d67798b7-z9prl         0/1     Pending   0          22m</span><br><span class="line">etcd-master                      1/1     Running   0          22m</span><br><span class="line">kube-apiserver-master            1/1     Running   0          22m</span><br><span class="line">kube-controller-manager-master   1/1     Running   0          22m</span><br><span class="line">kube-proxy-bhz8s                 1/1     Running   0          22m</span><br><span class="line">kube-scheduler-master            1/1     Running   0          22m</span><br><span class="line">dereck@master:~$ </span><br></pre></td></tr></table></figure>
+
+<p>可以看到，依赖于网络的 CoreDNS pod 调度失败，一直在 Pending。</p>
+<h1 id="部署网络插件"><a href="#部署网络插件" class="headerlink" title="部署网络插件"></a>部署网络插件</h1><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">dereck@master:~$ proxyon</span><br><span class="line">dereck@master:~$ kubectl apply -f <span class="string">&quot;https://cloud.weave.works/k8s/net?k8s-version=<span class="subst">$(kubectl version | base64 | tr -d &#x27;\n&#x27;)</span>&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>部署完成后，再次查看 Pod 状态，所有的系统 Pod 都启动成功。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">dereck@master:~$ kubectl -n kube-system get po</span><br><span class="line">NAME                             READY   STATUS    RESTARTS   AGE</span><br><span class="line">coredns-54d67798b7-gpfnw         1/1     Running   0          58m</span><br><span class="line">coredns-54d67798b7-z9prl         1/1     Running   0          58m</span><br><span class="line">etcd-master                      1/1     Running   0          57m</span><br><span class="line">kube-apiserver-master            1/1     Running   0          57m</span><br><span class="line">kube-controller-manager-master   1/1     Running   0          57m</span><br><span class="line">kube-proxy-bhz8s                 1/1     Running   0          58m</span><br><span class="line">kube-scheduler-master            1/1     Running   0          57m</span><br><span class="line">weave-net-5hd98                  2/2     Running   1          59s</span><br></pre></td></tr></table></figure>
+
+<p>可以顺便看一下所有需要的 Docker image</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">dereck@master:~$ sudo docker images</span><br><span class="line">REPOSITORY                                                                    TAG        IMAGE ID       CREATED         SIZE</span><br><span class="line">registry.cn-hangzhou.aliyuncs.com/google_containers/kube-proxy                v1.20.13   b787d8528941   2 weeks ago     99.7MB</span><br><span class="line">registry.cn-hangzhou.aliyuncs.com/google_containers/kube-apiserver            v1.20.13   d862ea5b2791   2 weeks ago     122MB</span><br><span class="line">registry.cn-hangzhou.aliyuncs.com/google_containers/kube-controller-manager   v1.20.13   03ec922c75bc   2 weeks ago     116MB</span><br><span class="line">registry.cn-hangzhou.aliyuncs.com/google_containers/kube-scheduler            v1.20.13   70ae19262a81   2 weeks ago     47.3MB</span><br><span class="line">ghcr.io/weaveworks/launcher/weave-npc                                         2.8.1      7f92d556d4ff   10 months ago   39.3MB</span><br><span class="line">ghcr.io/weaveworks/launcher/weave-kube                                        2.8.1      df29c0a4002c   10 months ago   89MB</span><br><span class="line">registry.cn-hangzhou.aliyuncs.com/google_containers/etcd                      3.4.13-0   0369cf4303ff   15 months ago   253MB</span><br><span class="line">registry.cn-hangzhou.aliyuncs.com/google_containers/coredns                   1.7.0      bfe3a36ebd25   17 months ago   45.2MB</span><br><span class="line">registry.cn-hangzhou.aliyuncs.com/google_containers/pause                     3.2        80d28bedfe5d   21 months ago   683kB</span><br></pre></td></tr></table></figure>
+
+<p>至此，Master 节点就部署完成了。</p>
+<h1 id="部署-Kubernetes-的-Worker-节点"><a href="#部署-Kubernetes-的-Worker-节点" class="headerlink" title="部署 Kubernetes 的 Worker 节点"></a>部署 Kubernetes 的 Worker 节点</h1><h2 id="克隆-Master-节点，从而无需再重复安装-Kubernete"><a href="#克隆-Master-节点，从而无需再重复安装-Kubernete" class="headerlink" title="克隆 Master 节点，从而无需再重复安装 Kubernete"></a>克隆 Master 节点，从而无需再重复安装 Kubernete</h2><p><img src="/images/MacOS%E6%90%AD%E5%BB%BA%E5%AE%8C%E6%95%B4%E7%9A%84Kubernetes%E9%9B%86%E7%BE%A4/2021-12-05-clone-master.png" alt="克隆 Master 节点"></p>
+<h2 id="通过-kubeadm-join-加入集群"><a href="#通过-kubeadm-join-加入集群" class="headerlink" title="通过 kubeadm join 加入集群"></a>通过 <code>kubeadm join</code> 加入集群</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">root@worker:/home/root<span class="comment"># kubeadm join 192.168.1.33:6443 --token wo70fq.2xef2p6g3yv1wnlf     --discovery-token-ca-cert-hash sha256:59c3eadaf97d0f576379c08ed73c1a3693fc8ec5a5dfbc08af5eeb40d1eb9f84</span></span><br></pre></td></tr></table></figure>
+
+<p>如果忘记 token 或 token 过期，可以重新生成新的 token，参考 [<a href="kubernetes-add-new-worker-node.html">Kubernetes添加新的worker节点</a>]</p>
+<p>至此，一个基本完整的 Kubernetes 集群就部署完毕了。此时，如果在 worker 节点运行 <code>kubectl</code> 查看集群状态的时候可能会如下连接错误，解决方法参考[<a href="kubectl-failed-on-worker-node.html">Kubernetes的worker节点无法运行kubectl命令</a>]</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">dereck@worker:~$ kubectl get pods --all-namespaces</span><br><span class="line">The connection to the server 192.168.1.33:6443 was refused - did you specify the right host or port?</span><br></pre></td></tr></table></figure>
+
+
+
+<p>接下来，可以在安装一些其他辅助插件，比如 Dashboard 和 存储插件。</p>
+<h1 id="部署-Dashboard-可视化插件"><a href="#部署-Dashboard-可视化插件" class="headerlink" title="部署 Dashboard 可视化插件"></a>部署 Dashboard 可视化插件</h1><p>Kubernetes 社区提供了 <a target="_blank" rel="noopener" href="https://github.com/kubernetes/dashboard">Kubernetes Dashboard</a></p>
+<h2 id="部署-kubernetes-dashboard"><a href="#部署-kubernetes-dashboard" class="headerlink" title="部署 kubernetes-dashboard"></a>部署 kubernetes-dashboard</h2><p>直接使用 repo README 文件中提供的最新的 yaml 文件，创建所需对象</p>
+<p><img src="/images/MacOS%E6%90%AD%E5%BB%BA%E5%AE%8C%E6%95%B4%E7%9A%84Kubernetes%E9%9B%86%E7%BE%A4/image-20211209225537266.png" alt="image-20211209225537266"></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">dereck@master:~$ kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.4.0/aio/deploy/recommended.yaml</span><br><span class="line">namespace/kubernetes-dashboard created</span><br><span class="line">serviceaccount/kubernetes-dashboard created</span><br><span class="line">service/kubernetes-dashboard created</span><br><span class="line">secret/kubernetes-dashboard-certs created</span><br><span class="line">secret/kubernetes-dashboard-csrf created</span><br><span class="line">secret/kubernetes-dashboard-key-holder created</span><br><span class="line">configmap/kubernetes-dashboard-settings created</span><br><span class="line">role.rbac.authorization.k8s.io/kubernetes-dashboard created</span><br><span class="line">clusterrole.rbac.authorization.k8s.io/kubernetes-dashboard created</span><br><span class="line">rolebinding.rbac.authorization.k8s.io/kubernetes-dashboard created</span><br><span class="line">clusterrolebinding.rbac.authorization.k8s.io/kubernetes-dashboard created</span><br><span class="line">deployment.apps/kubernetes-dashboard created</span><br><span class="line">service/dashboard-metrics-scraper created</span><br><span class="line">deployment.apps/dashboard-metrics-scraper created</span><br><span class="line">dereck@master:~$ </span><br></pre></td></tr></table></figure>
+
+<p>该命令会首先一个 namespace <code>kubernetes-dashboard</code>，然后在该 namespace 下部署 dashboard application</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">dereck@master:~$ kubectl -n kubernetes-dashboard get all -owide</span><br><span class="line">NAME                                             READY   STATUS    RESTARTS   AGE   IP          NODE     NOMINATED NODE   READINESS GATES</span><br><span class="line">pod/dashboard-metrics-scraper-5b8896d7fc-jsdq7   1/1     Running   0          13m   10.44.0.3   worker   &lt;none&gt;           &lt;none&gt;</span><br><span class="line">pod/kubernetes-dashboard-897c7599f-4ss6f         1/1     Running   0          13m   10.44.0.2   worker   &lt;none&gt;           &lt;none&gt;</span><br><span class="line"></span><br><span class="line">NAME                                TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)    AGE   SELECTOR</span><br><span class="line">service/dashboard-metrics-scraper   ClusterIP   10.104.253.223   &lt;none&gt;        8000/TCP   13m   k8s-app=dashboard-metrics-scraper</span><br><span class="line">service/kubernetes-dashboard        ClusterIP   10.108.32.14     &lt;none&gt;        443/TCP    13m   k8s-app=kubernetes-dashboard</span><br><span class="line"></span><br><span class="line">NAME                                        READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS                  IMAGES                                SELECTOR</span><br><span class="line">deployment.apps/dashboard-metrics-scraper   1/1     1            1           13m   dashboard-metrics-scraper   kubernetesui/metrics-scraper:v1.0.7   k8s-app=dashboard-metrics-scraper</span><br><span class="line">deployment.apps/kubernetes-dashboard        1/1     1            1           13m   kubernetes-dashboard        kubernetesui/dashboard:v2.4.0         k8s-app=kubernetes-dashboard</span><br><span class="line"></span><br><span class="line">NAME                                                   DESIRED   CURRENT   READY   AGE   CONTAINERS                  IMAGES                                SELECTOR</span><br><span class="line">replicaset.apps/dashboard-metrics-scraper-5b8896d7fc   1         1         1       13m   dashboard-metrics-scraper   kubernetesui/metrics-scraper:v1.0.7   k8s-app=dashboard-metrics-scraper,pod-template-hash=5b8896d7fc</span><br><span class="line">replicaset.apps/kubernetes-dashboard-897c7599f         1         1         1       13m   kubernetes-dashboard        kubernetesui/dashboard:v2.4.0         k8s-app=kubernetes-dashboard,pod-template-hash=897c7599f</span><br><span class="line">dereck@master:~$ </span><br></pre></td></tr></table></figure>
+
+<h2 id="创建用户用以访问-Dashboard"><a href="#创建用户用以访问-Dashboard" class="headerlink" title="创建用户用以访问 Dashboard"></a>创建用户用以访问 Dashboard</h2><h3 id="创建-Service-Account"><a href="#创建-Service-Account" class="headerlink" title="创建 Service Account"></a>创建 Service Account</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">dereck@master:~$ cat &lt;&lt; <span class="string">EOF | kubectl apply -f -  </span></span><br><span class="line"><span class="string">apiVersion: v1</span></span><br><span class="line"><span class="string">kind: ServiceAccount</span></span><br><span class="line"><span class="string">metadata:</span></span><br><span class="line"><span class="string">  name: admin-user</span></span><br><span class="line"><span class="string">  namespace: kubernetes-dashboard</span></span><br><span class="line"><span class="string">EOF</span></span><br><span class="line">serviceaccount/admin-user created</span><br><span class="line">dereck@master:~$ </span><br></pre></td></tr></table></figure>
+
+<h3 id="创建-ClusterRoleBinding"><a href="#创建-ClusterRoleBinding" class="headerlink" title="创建 ClusterRoleBinding"></a>创建 ClusterRoleBinding</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">dereck@master:~$ cat &lt;&lt; <span class="string">EOF | kubectl apply -f -  </span></span><br><span class="line"><span class="string">apiVersion: rbac.authorization.k8s.io/v1</span></span><br><span class="line"><span class="string">&gt; kind: ClusterRoleBinding</span></span><br><span class="line"><span class="string">&gt; metadata:</span></span><br><span class="line"><span class="string">&gt;   name: admin-user</span></span><br><span class="line"><span class="string">&gt; roleRef:</span></span><br><span class="line"><span class="string">&gt;   apiGroup: rbac.authorization.k8s.io</span></span><br><span class="line"><span class="string">&gt;   kind: ClusterRole</span></span><br><span class="line"><span class="string">&gt;   name: cluster-admin</span></span><br><span class="line"><span class="string">&gt; subjects:</span></span><br><span class="line"><span class="string">&gt; - kind: ServiceAccount</span></span><br><span class="line"><span class="string">&gt;   name: admin-user</span></span><br><span class="line"><span class="string">&gt;   namespace: kubernetes-dashboard</span></span><br><span class="line"><span class="string">&gt; EOF</span></span><br><span class="line">clusterrolebinding.rbac.authorization.k8s.io/admin-user created</span><br><span class="line">dereck@master:~$ </span><br></pre></td></tr></table></figure>
+
+<h3 id="获取-Bearer-Token"><a href="#获取-Bearer-Token" class="headerlink" title="获取 Bearer Token"></a>获取 Bearer Token</h3><p>此 token 将用来后续登陆到 Dashboard</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">dereck@master:~$ kubectl -n kubernetes-dashboard get secret $(kubectl -n kubernetes-dashboard get sa/admin-user -o jsonpath=<span class="string">&quot;&#123;.secrets[0].name&#125;&quot;</span>) -o go-template=<span class="string">&quot;&#123;&#123;.data.token | base64decode&#125;&#125;&quot;</span></span><br><span class="line">eyJhbGciOiJSUzI1NiIsImtpZCI6IngzdElhNnUtcUJBOGh2aVVYNXdFTnpWUWRpZ0psb0I3c1RFUi1pNV8zeDgifQ.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJrdWJlcm5ldGVzLWRhc2hib2FyZCIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VjcmV0Lm5hbWUiOiJhZG1pbi11c2VyLXRva2VuLWo4aHZtIiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZXJ2aWNlLWFjY291bnQubmFtZSI6ImFkbWluLXVzZXIiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC51aWQiOiJiNDAwYzhjMi1lNTViLTRmZjAtYjk2Ny0yYTUwMzQ2OWJhZmQiLCJzdWIiOiJzeXN0ZW06c2VydmljZWFjY291bnQ6a3ViZXJuZXRlcy1kYXNoYm9hcmQ6YWRtaW4tdXNlciJ9.z1RnVzi5_YK9-M5pWdRaMgzPy8KEl85cQyM_LDyQIstXzkHsX2AMYyS2BxqOK-z8xhYPI9ouYnAcUWrq6rTr4bEG9EeiMsc2DL5V3XH2Y9Y-mqhHXnHcF15L9CU_APIwjryudAYixveKMfOFjsjk4XgpG7Aa8AAT3gZOKYLZ943V47p00KbT4yJw8n6y02llSEUpCysWaP3a5eGbe-Y_ah7rZP0pqWRGvxb9n4OLJVUU7PLUy0OtXNm76BQn5b1ZOYQ-Qy6f8xx5dzNj0E9MCnuXsnE_TyyT1pw-SikUieHHUhmYpKACiJq-VzCi029YNFiFv5aLLTv039u9tuJ1Sw</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="本地访问"><a href="#本地访问" class="headerlink" title="本地访问"></a>本地访问</h2><p>由于 Dashboard 是一个 Web Server，很多人经常会在自己的公有云上无意地暴露 Dashboard 的端口，从而造成安全隐患。所以，1.7 版本之后的 Dashboard 项目部署完成后，默认只能通过 Proxy 的方式在本地访问。</p>
+<p>这里在 master 节点运行 <code>kubectrl proxy</code> 后，就可以在 master 节点内通过 <em><a target="_blank" rel="noopener" href="http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/"><code>http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/</code></a></em> 访问 Dashboard 了</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">dereck@master:~$ kubectl proxy</span><br><span class="line">Starting to serve on 127.0.0.1:8001</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p><img src="/images/MacOS%E6%90%AD%E5%BB%BA%E5%AE%8C%E6%95%B4%E7%9A%84Kubernetes%E9%9B%86%E7%BE%A4/image-20211209231452281.png" alt="image-20211209231452281"></p>
+<p>使用上一步生成的 token 登录，可看到集群的具体信息</p>
+<p><img src="/images/MacOS%E6%90%AD%E5%BB%BA%E5%AE%8C%E6%95%B4%E7%9A%84Kubernetes%E9%9B%86%E7%BE%A4/image-20211209234720282.png" alt="image-20211209234720282"></p>
+<h2 id="部署容器存储插件-Rook-可选"><a href="#部署容器存储插件-Rook-可选" class="headerlink" title="部署容器存储插件 - Rook (可选)"></a>部署容器存储插件 - Rook (可选)</h2><p>如果只是在本地测试一下 k8s 集群，那无需此插件。这个插件主要解决不同机器上的容器需要共享容器数据的场景。比如，我们需要搭建一个 redis 集群，redis 的各节点（这里以 Pod 方式运行）需要持久化数据（rdb、aof），这样当 redis 节点 crash 之后依旧有能力恢复数据。此时就需要有个存储插件来保持数据文件，比如 NAS。</p>
+<h3 id="下载模版文件"><a href="#下载模版文件" class="headerlink" title="下载模版文件"></a>下载模版文件</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">dereck@master:~$ proxyon</span><br><span class="line">dereck@master:~$ git <span class="built_in">clone</span> --single-branch --branch v1.8.0 https://github.com/rook/rook.git</span><br></pre></td></tr></table></figure>
+
+<h3 id="部署-Rook-Operator"><a href="#部署-Rook-Operator" class="headerlink" title="部署 Rook Operator"></a>部署 Rook Operator</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br></pre></td><td class="code"><pre><span class="line">dereck@master:~$ <span class="built_in">cd</span> rook/deploy/examples/</span><br><span class="line">dereck@master:~/rook/deploy/examples$ kubectl create -f crds.yaml -f common.yaml -f operator.yaml</span><br><span class="line">customresourcedefinition.apiextensions.k8s.io/cephblockpools.ceph.rook.io created</span><br><span class="line">customresourcedefinition.apiextensions.k8s.io/cephbucketnotifications.ceph.rook.io created</span><br><span class="line">customresourcedefinition.apiextensions.k8s.io/cephbuckettopics.ceph.rook.io created</span><br><span class="line">customresourcedefinition.apiextensions.k8s.io/cephclients.ceph.rook.io created</span><br><span class="line">customresourcedefinition.apiextensions.k8s.io/cephclusters.ceph.rook.io created</span><br><span class="line">customresourcedefinition.apiextensions.k8s.io/cephfilesystemmirrors.ceph.rook.io created</span><br><span class="line">customresourcedefinition.apiextensions.k8s.io/cephfilesystems.ceph.rook.io created</span><br><span class="line">customresourcedefinition.apiextensions.k8s.io/cephnfses.ceph.rook.io created</span><br><span class="line">customresourcedefinition.apiextensions.k8s.io/cephobjectrealms.ceph.rook.io created</span><br><span class="line">customresourcedefinition.apiextensions.k8s.io/cephobjectstores.ceph.rook.io created</span><br><span class="line">customresourcedefinition.apiextensions.k8s.io/cephobjectstoreusers.ceph.rook.io created</span><br><span class="line">customresourcedefinition.apiextensions.k8s.io/cephobjectzonegroups.ceph.rook.io created</span><br><span class="line">customresourcedefinition.apiextensions.k8s.io/cephobjectzones.ceph.rook.io created</span><br><span class="line">customresourcedefinition.apiextensions.k8s.io/cephrbdmirrors.ceph.rook.io created</span><br><span class="line">customresourcedefinition.apiextensions.k8s.io/objectbucketclaims.objectbucket.io created</span><br><span class="line">customresourcedefinition.apiextensions.k8s.io/objectbuckets.objectbucket.io created</span><br><span class="line">namespace/rook-ceph created</span><br><span class="line">clusterrole.rbac.authorization.k8s.io/cephfs-csi-nodeplugin created</span><br><span class="line">clusterrole.rbac.authorization.k8s.io/cephfs-external-provisioner-runner created</span><br><span class="line">clusterrole.rbac.authorization.k8s.io/psp:rook created</span><br><span class="line">clusterrole.rbac.authorization.k8s.io/rbd-csi-nodeplugin created</span><br><span class="line">clusterrole.rbac.authorization.k8s.io/rbd-external-provisioner-runner created</span><br><span class="line">clusterrole.rbac.authorization.k8s.io/rook-ceph-cluster-mgmt created</span><br><span class="line">clusterrole.rbac.authorization.k8s.io/rook-ceph-global created</span><br><span class="line">clusterrole.rbac.authorization.k8s.io/rook-ceph-mgr-cluster created</span><br><span class="line">clusterrole.rbac.authorization.k8s.io/rook-ceph-mgr-system created</span><br><span class="line">clusterrole.rbac.authorization.k8s.io/rook-ceph-object-bucket created</span><br><span class="line">clusterrole.rbac.authorization.k8s.io/rook-ceph-osd created</span><br><span class="line">clusterrole.rbac.authorization.k8s.io/rook-ceph-system created</span><br><span class="line">clusterrolebinding.rbac.authorization.k8s.io/cephfs-csi-nodeplugin created</span><br><span class="line">clusterrolebinding.rbac.authorization.k8s.io/cephfs-csi-provisioner-role created</span><br><span class="line">clusterrolebinding.rbac.authorization.k8s.io/rbd-csi-nodeplugin created</span><br><span class="line">clusterrolebinding.rbac.authorization.k8s.io/rbd-csi-provisioner-role created</span><br><span class="line">clusterrolebinding.rbac.authorization.k8s.io/rook-ceph-global created</span><br><span class="line">clusterrolebinding.rbac.authorization.k8s.io/rook-ceph-mgr-cluster created</span><br><span class="line">clusterrolebinding.rbac.authorization.k8s.io/rook-ceph-object-bucket created</span><br><span class="line">clusterrolebinding.rbac.authorization.k8s.io/rook-ceph-osd created</span><br><span class="line">clusterrolebinding.rbac.authorization.k8s.io/rook-ceph-system created</span><br><span class="line">clusterrolebinding.rbac.authorization.k8s.io/rook-ceph-system-psp created</span><br><span class="line">clusterrolebinding.rbac.authorization.k8s.io/rook-csi-cephfs-plugin-sa-psp created</span><br><span class="line">clusterrolebinding.rbac.authorization.k8s.io/rook-csi-cephfs-provisioner-sa-psp created</span><br><span class="line">clusterrolebinding.rbac.authorization.k8s.io/rook-csi-rbd-plugin-sa-psp created</span><br><span class="line">clusterrolebinding.rbac.authorization.k8s.io/rook-csi-rbd-provisioner-sa-psp created</span><br><span class="line">podsecuritypolicy.policy/00-rook-privileged created</span><br><span class="line">role.rbac.authorization.k8s.io/cephfs-external-provisioner-cfg created</span><br><span class="line">role.rbac.authorization.k8s.io/rbd-external-provisioner-cfg created</span><br><span class="line">role.rbac.authorization.k8s.io/rook-ceph-cmd-reporter created</span><br><span class="line">role.rbac.authorization.k8s.io/rook-ceph-mgr created</span><br><span class="line">role.rbac.authorization.k8s.io/rook-ceph-osd created</span><br><span class="line">role.rbac.authorization.k8s.io/rook-ceph-purge-osd created</span><br><span class="line">role.rbac.authorization.k8s.io/rook-ceph-system created</span><br><span class="line">rolebinding.rbac.authorization.k8s.io/cephfs-csi-provisioner-role-cfg created</span><br><span class="line">rolebinding.rbac.authorization.k8s.io/rbd-csi-provisioner-role-cfg created</span><br><span class="line">rolebinding.rbac.authorization.k8s.io/rook-ceph-cluster-mgmt created</span><br><span class="line">rolebinding.rbac.authorization.k8s.io/rook-ceph-cmd-reporter created</span><br><span class="line">rolebinding.rbac.authorization.k8s.io/rook-ceph-cmd-reporter-psp created</span><br><span class="line">rolebinding.rbac.authorization.k8s.io/rook-ceph-default-psp created</span><br><span class="line">rolebinding.rbac.authorization.k8s.io/rook-ceph-mgr created</span><br><span class="line">rolebinding.rbac.authorization.k8s.io/rook-ceph-mgr-psp created</span><br><span class="line">rolebinding.rbac.authorization.k8s.io/rook-ceph-mgr-system created</span><br><span class="line">rolebinding.rbac.authorization.k8s.io/rook-ceph-osd created</span><br><span class="line">rolebinding.rbac.authorization.k8s.io/rook-ceph-osd-psp created</span><br><span class="line">rolebinding.rbac.authorization.k8s.io/rook-ceph-purge-osd created</span><br><span class="line">rolebinding.rbac.authorization.k8s.io/rook-ceph-system created</span><br><span class="line">serviceaccount/rook-ceph-cmd-reporter created</span><br><span class="line">serviceaccount/rook-ceph-mgr created</span><br><span class="line">serviceaccount/rook-ceph-osd created</span><br><span class="line">serviceaccount/rook-ceph-purge-osd created</span><br><span class="line">serviceaccount/rook-ceph-system created</span><br><span class="line">serviceaccount/rook-csi-cephfs-plugin-sa created</span><br><span class="line">serviceaccount/rook-csi-cephfs-provisioner-sa created</span><br><span class="line">serviceaccount/rook-csi-rbd-plugin-sa created</span><br><span class="line">serviceaccount/rook-csi-rbd-provisioner-sa created</span><br><span class="line">configmap/rook-ceph-operator-config created</span><br><span class="line">deployment.apps/rook-ceph-operator created</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>确保 rook-ceph-operator 成功运行</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">dereck@master:~/rook/deploy/examples$ kubectl get all -n rook-ceph</span><br><span class="line">NAME                                     READY   STATUS    RESTARTS   AGE</span><br><span class="line">pod/rook-ceph-operator-bccffd648-zx6h7   1/1     Running   0          4m54s</span><br><span class="line"></span><br><span class="line">NAME                                 READY   UP-TO-DATE   AVAILABLE   AGE</span><br><span class="line">deployment.apps/rook-ceph-operator   1/1     1            1           4m54s</span><br><span class="line"></span><br><span class="line">NAME                                           DESIRED   CURRENT   READY   AGE</span><br><span class="line">replicaset.apps/rook-ceph-operator-bccffd648   1         1         1       4m54s</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h3 id="创建-Ceph-集群"><a href="#创建-Ceph-集群" class="headerlink" title="创建 Ceph 集群"></a>创建 Ceph 集群</h3><p>Rook 提供了三种模版文件</p>
+<ul>
+<li>cluster.yaml</li>
+<li>cluster-on-pvc.yaml</li>
+<li>cluster-test.yaml</li>
+</ul>
+<p>前两者适合生产环境，其中 <em>cluster.yaml</em> 需要至少 3 个 worker 节点。作为本地测试，可以使用最后一个 <em>cluster-test.yaml</em></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">dereck@master:~/rook/deploy/examples$ kubectl create -f cluster-test.yaml </span><br><span class="line">configmap/rook-config-override created</span><br><span class="line">cephcluster.ceph.rook.io/my-cluster created</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>至此一个完整的 kubernetes 集群搭建完成。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Kubernetes/" rel="tag"># Kubernetes</a>
+              <a href="/tags/MacOS/" rel="tag"># MacOS</a>
+              <a href="/tags/Ubuntu/" rel="tag"># Ubuntu</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item"></div>
+      <div class="post-nav-item">
+    <a href="/kubernetes-add-new-worker-node.html" rel="next" title="Kubernetes添加新的worker节点">
+      Kubernetes添加新的worker节点 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E7%9B%AE%E6%A0%87"><span class="nav-number">1.</span> <span class="nav-text">目标</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E7%8E%AF%E5%A2%83%E5%87%86%E5%A4%87"><span class="nav-number">2.</span> <span class="nav-text">环境准备</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%AE%89%E8%A3%85-Kubernetes-%E5%92%8C-Docker"><span class="nav-number">3.</span> <span class="nav-text">安装 Kubernetes 和 Docker</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%85%8D%E7%BD%AE%E4%BB%A3%E7%90%86"><span class="nav-number">3.1.</span> <span class="nav-text">配置代理</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%A0%B9%E6%8D%AE%E6%83%85%E5%86%B5%E5%AE%89%E8%A3%85%E6%89%80%E9%9C%80%E5%B7%A5%E5%85%B7"><span class="nav-number">3.2.</span> <span class="nav-text">根据情况安装所需工具</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8-root-%E7%94%A8%E6%88%B7%E5%AE%89%E8%A3%85"><span class="nav-number">3.3.</span> <span class="nav-text">使用 root 用户安装</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%87%86%E5%A4%87-kubeadm-yaml"><span class="nav-number">3.4.</span> <span class="nav-text">准备 kubeadm.yaml</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%83%A8%E7%BD%B2-Master"><span class="nav-number">3.5.</span> <span class="nav-text">部署 Master</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E9%83%A8%E7%BD%B2%E7%BD%91%E7%BB%9C%E6%8F%92%E4%BB%B6"><span class="nav-number">4.</span> <span class="nav-text">部署网络插件</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E9%83%A8%E7%BD%B2-Kubernetes-%E7%9A%84-Worker-%E8%8A%82%E7%82%B9"><span class="nav-number">5.</span> <span class="nav-text">部署 Kubernetes 的 Worker 节点</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%8B%E9%9A%86-Master-%E8%8A%82%E7%82%B9%EF%BC%8C%E4%BB%8E%E8%80%8C%E6%97%A0%E9%9C%80%E5%86%8D%E9%87%8D%E5%A4%8D%E5%AE%89%E8%A3%85-Kubernete"><span class="nav-number">5.1.</span> <span class="nav-text">克隆 Master 节点，从而无需再重复安装 Kubernete</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%9A%E8%BF%87-kubeadm-join-%E5%8A%A0%E5%85%A5%E9%9B%86%E7%BE%A4"><span class="nav-number">5.2.</span> <span class="nav-text">通过 kubeadm join 加入集群</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E9%83%A8%E7%BD%B2-Dashboard-%E5%8F%AF%E8%A7%86%E5%8C%96%E6%8F%92%E4%BB%B6"><span class="nav-number">6.</span> <span class="nav-text">部署 Dashboard 可视化插件</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%83%A8%E7%BD%B2-kubernetes-dashboard"><span class="nav-number">6.1.</span> <span class="nav-text">部署 kubernetes-dashboard</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%9B%E5%BB%BA%E7%94%A8%E6%88%B7%E7%94%A8%E4%BB%A5%E8%AE%BF%E9%97%AE-Dashboard"><span class="nav-number">6.2.</span> <span class="nav-text">创建用户用以访问 Dashboard</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%9B%E5%BB%BA-Service-Account"><span class="nav-number">6.2.1.</span> <span class="nav-text">创建 Service Account</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%9B%E5%BB%BA-ClusterRoleBinding"><span class="nav-number">6.2.2.</span> <span class="nav-text">创建 ClusterRoleBinding</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%8E%B7%E5%8F%96-Bearer-Token"><span class="nav-number">6.2.3.</span> <span class="nav-text">获取 Bearer Token</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9C%AC%E5%9C%B0%E8%AE%BF%E9%97%AE"><span class="nav-number">6.3.</span> <span class="nav-text">本地访问</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%83%A8%E7%BD%B2%E5%AE%B9%E5%99%A8%E5%AD%98%E5%82%A8%E6%8F%92%E4%BB%B6-Rook-%E5%8F%AF%E9%80%89"><span class="nav-number">6.4.</span> <span class="nav-text">部署容器存储插件 - Rook (可选)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%8B%E8%BD%BD%E6%A8%A1%E7%89%88%E6%96%87%E4%BB%B6"><span class="nav-number">6.4.1.</span> <span class="nav-text">下载模版文件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%83%A8%E7%BD%B2-Rook-Operator"><span class="nav-number">6.4.2.</span> <span class="nav-text">部署 Rook Operator</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%9B%E5%BB%BA-Ceph-%E9%9B%86%E7%BE%A4"><span class="nav-number">6.4.3.</span> <span class="nav-text">创建 Ceph 集群</span></a></li></ol></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="小鱼小虾"
+      src="/images/YJ.png">
+  <p class="site-author-name" itemprop="name">小鱼小虾</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">3</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+        <div class="back-to-top motion-element">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">小鱼小虾</span>
+</div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script>
+if (document.querySelectorAll('pre.mermaid').length) {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mermaid@8/dist/mermaid.min.js', () => {
+    mermaid.initialize({
+      theme    : 'forest',
+      logLevel : 3,
+      flowchart: { curve     : 'linear' },
+      gantt    : { axisFormat: '%m/%d/%Y' },
+      sequence : { actorMargin: 50 }
+    });
+  }, window.mermaid);
+}
+</script>
+
+
+  
+
+  
+
+</body>
+</html>
